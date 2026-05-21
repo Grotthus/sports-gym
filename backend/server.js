@@ -1,8 +1,11 @@
 import db from "./config/db.js";
 import express from "express";
+import cors from "cors";
+
 //const express = require(`express`);
 const app = express();
 
+app.use(cors());
 app.use(express.json()); //to read json
 app.get(`/`,(req, res) => {
     //console.log("asdjakdh" + req.params.id);
@@ -17,10 +20,25 @@ app.get("/users", async (req, res) => {
     res.status(500).send("DB error");
   }
 });
+/// READ: get one user by id
+/*
+SELECT `users`.*, `users`.`id_User`
+FROM `users`;
 
+*/
+app.get("/users/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const [rows] = await db.query("SELECT `users`.*, `users`.`id_User` FROM `users` WHERE `users`.`id_User` = ?", [id]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).send("DB error");
+  }
+});
+// READ: get all active memberships
 app.get("/memberships", async (req,res) => {
   try{
-    const [rows] = await db.query("SELECT `membership`.*, `membership`.`IsActive` FROM `membership` WHERE `membership`.`IsActive` = '0';");
+    const [rows] = await db.query("SELECT `membership`.*, `membership`.`IsActive` FROM `membership` WHERE `membership`.`IsActive` = '1';");
     res.json(rows);
   }
   catch(err){
@@ -69,7 +87,7 @@ app.put("/memberships/:id", async (req, res) => {
     const { Name, BasePrice, Period, Description } = req.body;
 
     await db.query(
-      `UPDATE Membership
+      `UPDATE memebrship
        SET Name = ?, BasePrice = ?, Period = ?, Description = ?
        WHERE id_Membership = ?`,
       [Name, BasePrice, Period, Description, id]
@@ -82,6 +100,25 @@ app.put("/memberships/:id", async (req, res) => {
   }
 });
 
+// update: user
+app.put("/users/:id", async (req, res) => {
+   try {
+    const id = req.params.id;
+    const { Email, Name, LastName, Address, PhoneNumber, Role, fk_Membershipid_Membership} = req.body;
+
+    await db.query(
+      `UPDATE users
+       SET Email = ?, Name = ?, LastName = ?, Address = ?, PhoneNumber = ?, Role = ?, fk_Membershipid_Membership = ?
+       WHERE id_User = ?`,
+      [Email, Name, LastName, Address, PhoneNumber, Role, fk_Membershipid_Membership, id]
+    );
+
+    res.send(`User updated: ${id}`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Update user error");
+  }
+});
 // SOFT DELETE: deactivate membership
 app.put("/memberships/deactivate/:id", async (req, res) => {
   try {
@@ -115,6 +152,29 @@ app.delete("/memberships/:id", async (req, res) => {
     res.status(500).send("Delete membership error");
   }
 });
+
+// check if exists
+app.post("/memberships/exists/", async (req, res) => {
+  try {
+    const {email, password} = req.body;
+    const [rows] = await db.query(
+      "SELECT `users`.*, `users`.`Email`, `users`.`Password` FROM `users` WHERE `users`.`Email` = ? AND `users`.`Password` = ? ",
+      [email, password]
+    );
+
+    if(rows.length === 0) {
+      return res.json({ exists: false});
+    }
+    if(rows.length === 1 )
+    {
+      return res.json({ exists: true,role: rows[0]?.Role, id: rows[0]?.id_User || null  });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Checking membership error");
+  }
+});
+
 
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
