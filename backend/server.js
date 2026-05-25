@@ -1,9 +1,16 @@
 import db from "./config/db.js";
 import express from "express";
 import cors from "cors";
-
+import crypto from "crypto";
 //const express = require(`express`);
 const app = express();
+
+function hashPassword(password) {
+  return crypto
+    .createHash("sha256")
+    .update(password)
+    .digest("hex");
+}
 
 app.use(cors());
 app.use(express.json()); //to read json
@@ -87,7 +94,7 @@ app.put("/memberships/:id", async (req, res) => {
     const { Name, BasePrice, Period, Description } = req.body;
 
     await db.query(
-      `UPDATE memebrship
+      `UPDATE membership
        SET Name = ?, BasePrice = ?, Period = ?, Description = ?
        WHERE id_Membership = ?`,
       [Name, BasePrice, Period, Description, id]
@@ -100,23 +107,52 @@ app.put("/memberships/:id", async (req, res) => {
   }
 });
 
-// update: user
+//////// update: user
 app.put("/users/:id", async (req, res) => {
-   try {
+  try {
     const id = req.params.id;
-    const { Email, Name, LastName, Address, PhoneNumber, Role, fk_Membershipid_Membership} = req.body;
+
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE id_User = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const currentUser = rows[0];
+
+    const {
+      Email = currentUser.Email,
+      Name = currentUser.Name,
+      LastName = currentUser.LastName,
+      Address = currentUser.Address,
+      PhoneNumber = currentUser.PhoneNumber,
+      Role = currentUser.Role,
+      fk_Membershipid_Membership = currentUser.fk_Membershipid_Membership
+    } = req.body;
 
     await db.query(
       `UPDATE users
        SET Email = ?, Name = ?, LastName = ?, Address = ?, PhoneNumber = ?, Role = ?, fk_Membershipid_Membership = ?
        WHERE id_User = ?`,
-      [Email, Name, LastName, Address, PhoneNumber, Role, fk_Membershipid_Membership, id]
+      [
+        Email,
+        Name,
+        LastName,
+        Address,
+        PhoneNumber,
+        Role,
+        fk_Membershipid_Membership,
+        id
+      ]
     );
 
-    res.send(`User updated: ${id}`);
+    res.json({ success: true, message: `User updated: ${id}` });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Update user error");
+    res.status(500).json({ success: false, message: "Update user error" });
   }
 });
 // SOFT DELETE: deactivate membership
@@ -157,9 +193,10 @@ app.delete("/memberships/:id", async (req, res) => {
 app.post("/memberships/exists/", async (req, res) => {
   try {
     const {email, password} = req.body;
+    const hashedPassword = hashPassword(password);
     const [rows] = await db.query(
       "SELECT `users`.*, `users`.`Email`, `users`.`Password` FROM `users` WHERE `users`.`Email` = ? AND `users`.`Password` = ? ",
-      [email, password]
+      [email, hashedPassword]
     );
 
     if(rows.length === 0) {

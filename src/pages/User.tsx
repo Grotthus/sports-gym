@@ -16,8 +16,7 @@ async function fetchMemberships() {
 function User() {
   const [user, setUser] = useState<any>(null);
   const [memberships, setMemberships] = useState<any[]>([]);
-  const { id } = useParams();
-
+const id = localStorage.getItem("userId");
   useEffect(() => {
     if (!id) return;
 

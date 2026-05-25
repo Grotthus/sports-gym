@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router";
 import { use, useState } from "react";
 
+
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,11 +29,13 @@ function Login() {
       const userRole = data.role;
       console.log("User ID is log ino:", userId);
       if(userRole !== "Admin") {
-        navigate(`/user/${userId}`);
+          localStorage.setItem("userId", String(data.id));
+        navigate(`/user`);
         return;
       }
       else{
-      navigate(`/admin/${userId}`);}
+      localStorage.setItem("adminId", String(data.id));
+      navigate(`/admin`);}
     } else {
       setMessage("Wrong email or password");
     }
