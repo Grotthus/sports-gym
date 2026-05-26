@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 function MembershipCrud() {
   const [memberships, setMemberships] = useState<any[]>([]);
 
+  const [editingId, setEditingId] = useState<number | null>(null);
+
   const [name, setName] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [period, setPeriod] = useState("");
@@ -17,6 +19,14 @@ function MembershipCrud() {
   useEffect(() => {
     fetchMemberships();
   }, []);
+
+  function clearForm() {
+    setEditingId(null);
+    setName("");
+    setBasePrice("");
+    setPeriod("");
+    setDescription("");
+  }
 
   async function createMembership() {
     const response = await fetch("http://localhost:3005/memberships", {
@@ -40,33 +50,32 @@ function MembershipCrud() {
     }
 
     await fetchMemberships();
-
-    setName("");
-    setBasePrice("");
-    setPeriod("");
-    setDescription("");
+    clearForm();
   }
 
-  async function updateMembership(membership: any) {
-    const newName = prompt("New name", membership.Name);
-    const newPrice = prompt("New price", membership.BasePrice);
-    const newPeriod = prompt("New period", membership.Period);
-    const newDescription = prompt("New description", membership.Description);
+  function startEditing(membership: any) {
+    setEditingId(membership.id_Membership);
+    setName(membership.Name);
+    setBasePrice(String(membership.BasePrice));
+    setPeriod(String(membership.Period));
+    setDescription(membership.Description ?? "");
+  }
 
-    if (!newName || !newPrice || !newPeriod || !newDescription) return;
+  async function saveChanges() {
+    if (editingId === null) return;
 
     const response = await fetch(
-      `http://localhost:3005/memberships/${membership.id_Membership}`,
+      `http://localhost:3005/memberships/${editingId}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          Name: newName,
-          BasePrice: Number(newPrice),
-          Period: Number(newPeriod),
-          Description: newDescription,
+          Name: name,
+          BasePrice: Number(basePrice),
+          Period: Number(period),
+          Description: description,
         }),
       }
     );
@@ -77,6 +86,7 @@ function MembershipCrud() {
     }
 
     await fetchMemberships();
+    clearForm();
   }
 
   async function deactivateMembership(id: number) {
@@ -113,7 +123,9 @@ function MembershipCrud() {
       <h2 className="text-2xl font-bold">Membership Management</h2>
 
       <div className="bg-slate-800 p-6 rounded-xl space-y-4 border border-slate-700">
-        <h3 className="text-xl font-bold">Create Membership</h3>
+        <h3 className="text-xl font-bold">
+          {editingId === null ? "Create Membership" : "Edit Membership"}
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
@@ -145,12 +157,27 @@ function MembershipCrud() {
           />
         </div>
 
-        <button
-          onClick={createMembership}
-          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded font-semibold"
-        >
-          Create
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={editingId === null ? createMembership : saveChanges}
+            className={
+              editingId === null
+                ? "bg-green-600 hover:bg-green-700 px-6 py-3 rounded font-semibold"
+                : "bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded font-semibold"
+            }
+          >
+            {editingId === null ? "Create" : "Save Changes"}
+          </button>
+
+          {editingId !== null && (
+            <button
+              onClick={clearForm}
+              className="bg-slate-600 hover:bg-slate-700 px-6 py-3 rounded font-semibold"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -167,7 +194,7 @@ function MembershipCrud() {
 
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => updateMembership(membership)}
+                onClick={() => startEditing(membership)}
                 className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded"
               >
                 Update

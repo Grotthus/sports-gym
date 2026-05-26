@@ -4,6 +4,7 @@ import cors from "cors";
 import crypto from "crypto";
 //const express = require(`express`);
 const app = express();
+const authCodes = {};
 
 function hashPassword(password) {
   return crypto
@@ -202,16 +203,41 @@ app.post("/memberships/exists/", async (req, res) => {
     if(rows.length === 0) {
       return res.json({ exists: false});
     }
+
+    const user = rows[0];
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    authCodes[user.id_User] = code;
+
+    console.log(`AUTH CODE for ${user.Email}: ${code}`);
+
     if(rows.length === 1 )
     {
-      return res.json({ exists: true,role: rows[0]?.Role, id: rows[0]?.id_User || null  });
-    }
+    return res.json({ exists: true, requiresCode: true, role: rows[0]?.Role, id: rows[0]?.id_User || null });   
+   }
   } catch (err) {
     console.error(err);
     res.status(500).send("Checking membership error");
   }
 });
+//// verify auth code
+app.post("/auth/verify", (req, res) => {
+  const { userId, code } = req.body;
 
+  if (authCodes[userId] === code) {
+    delete authCodes[userId];
+
+    return res.json({
+      success: true,
+      id: userId,
+    });
+  }
+
+  res.json({
+    success: false,
+    message: "Invalid code",
+  });
+});
 
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
