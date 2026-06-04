@@ -69,12 +69,12 @@ function Login() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-cover bg-center"
-  style={{
-    backgroundImage:
-      "url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop')",
-  }}
-    
+    <main 
+     className="h-screen overflow-hidden flex items-center justify-center px-4 bg-cover bg-center"
+    style={{
+      backgroundImage:
+        "url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop')",
+    }}
     
     >
       {step === "login" && (
@@ -82,7 +82,7 @@ function Login() {
           onSubmit={handleLogin}
           className="w-full max-w-md bg-slate-800 p-8 rounded-xl space-y-5"
         >
-          <h1 className="text-3xl font-bold text-center">Login</h1>
+          <h1 className="text-3xl font-bold text-center text-white ">Login</h1>
 
           <input
             className="w-full px-4 py-2 rounded text-white"
